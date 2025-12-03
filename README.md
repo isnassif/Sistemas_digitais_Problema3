@@ -8,7 +8,7 @@
     <li><a href="#exibicao">Exibição do Cursor pelo Verilog (Overlay de Hardware)</a></li>
     <li><a href="#quadro">Quadro de Seleção e Comando de Zoom</a></li>
     <li><a href="#pios">PIOs Utilizados no Controle do Mouse e Seleção</a></li>
-    <li><a href="main">Funções do C</a></li>
+    <li><a href="#main">Funções do C</a></li>
   </ul>
 </nav>
 
