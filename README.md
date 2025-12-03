@@ -60,7 +60,7 @@
 </section>
 
 <section id="main"> 
-<h2>Principais Funções do C na Estrutura Atual do Sistema</h2> 
+<h2>Principais Mudanças do C na Estrutura Atual do Sistema</h2> 
 
 <p>Após compreender toda a integração entre o Verilog, os PIOs e a lógica de renderização em hardware, torna-se essencial analisar o papel da <code>main.c</code> dentro do funcionamento geral da aplicação. A versão atual passou por uma reestruturação profunda quando comparada à versão antiga, eliminando o antigo fluxo baseado em menus e introduzindo um modelo interativo, orientado por eventos do mouse, multithread e com atualização contínua dos registradores da FPGA. A seguir, são destacadas as principais mudanças e as funções centrais que compõem essa nova arquitetura.</p> 
 
