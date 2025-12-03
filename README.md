@@ -1,5 +1,27 @@
 # Sistemas_digitais_Problema3
 
+<style>
+nav ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+nav ul li {
+  margin: 6px 0;
+}
+
+nav ul li a {
+  color: #4ea1ff;      /* mesma cor usada nos outros links do print */
+  text-decoration: underline;
+  font-size: 1rem;      /* igual ao restante do texto */
+  line-height: 1.4rem;
+}
+
+nav h2 {
+  margin-bottom: 10px;
+}
+</style>
+
 <nav>
   <h2>Sumário</h2>
   <ul>
