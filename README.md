@@ -3,6 +3,11 @@
 <nav>
   <h2>Sumário</h2>
   <ul>
+      <li><a href="#funcionamento">Funcionamento e Integração do Mouse</a></li>
+    <li><a href="#captura">Mouse USB e Captura de Dados (linux/input.h)</a></li>
+    <li><a href="#exibicao">Exibição do Cursor pelo Verilog (Overlay de Hardware)</a></li>
+    <li><a href="#quadro">Quadro de Seleção e Comando de Zoom</a></li>
+    <li><a href="#pios">PIOs Utilizados no Controle do Mouse e Seleção</a></li>
     <li><a href="funcoes-c">Funções do C</a></li>
   </ul>
 </nav>
