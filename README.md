@@ -1,14 +1,3 @@
-# Sistemas_digitais_Problema3
-<section id="descricao">
-<h2>Descrição do Projeto</h2>
-
-<p>O projeto desenvolvido nesta terceira etapa consiste em um <strong>sistema de zoom dinâmico</strong> com interação via <strong>mouse USB</strong>, executando sobre a plataforma <strong>DE1-SoC</strong>. O sistema combina um <strong>processador ARM (HPS)</strong> executando código em C e um <strong>coprocessador gráfico implementado em Verilog na FPGA</strong>, comunicando-se por meio da ponte AXI Lightweight.</p>
-
-<p>O objetivo é permitir que o usuário selecione regiões da imagem exibida na saída VGA, realize cortes e aplique operações de <strong>zoom in</strong> e <strong>zoom out</strong> em tempo real, sem interferir no desempenho de exibição. Todo o processamento é controlado por comandos ISA enviados pelo HPS e interpretados pela controladora de hardware, que ativa os módulos específicos de ampliação e redução da imagem.</p>
-
-<p>A principal inovação deste estágio está na introdução da <strong>interação direta por mouse</strong> e na <strong>geração do cursor e área de seleção via overlay em hardware</strong>, o que elimina a necessidade de reescrever a imagem na RAM a cada atualização. Essa abordagem garante resposta instantânea e visualização limpa das operações, integrando o pipeline de vídeo da FPGA com a interface do usuário no HPS.</p>
-</section>
-
 <nav>
   <h2>Sumário</h2>
   <ul>
@@ -23,6 +12,20 @@
     <li><a href="#resultados">Resultados</a></li>
   </ul>
 </nav>
+
+
+# Sistemas_digitais_Problema3
+<section id="descricao">
+<h2>Descrição do Projeto</h2>
+
+<p>O projeto desenvolvido nesta terceira etapa consiste em um <strong>sistema de zoom dinâmico</strong> com interação via <strong>mouse USB</strong>, executando sobre a plataforma <strong>DE1-SoC</strong>. O sistema combina um <strong>processador ARM (HPS)</strong> executando código em C e um <strong>coprocessador gráfico implementado em Verilog na FPGA</strong>, comunicando-se por meio da ponte AXI Lightweight.</p>
+
+<p>O objetivo é permitir que o usuário selecione regiões da imagem exibida na saída VGA, realize cortes e aplique operações de <strong>zoom in</strong> e <strong>zoom out</strong> em tempo real, sem interferir no desempenho de exibição. Todo o processamento é controlado por comandos ISA enviados pelo HPS e interpretados pela controladora de hardware, que ativa os módulos específicos de ampliação e redução da imagem.</p>
+
+<p>A principal inovação deste estágio está na introdução da <strong>interação direta por mouse</strong> e na <strong>geração do cursor e área de seleção via overlay em hardware</strong>, o que elimina a necessidade de reescrever a imagem na RAM a cada atualização. Essa abordagem garante resposta instantânea e visualização limpa das operações, integrando o pipeline de vídeo da FPGA com a interface do usuário no HPS.</p>
+</section>
+
+
 
 <section id="fluxo">
 <h2>Fluxo Geral de Execução</h2>
