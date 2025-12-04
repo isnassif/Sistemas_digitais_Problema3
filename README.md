@@ -1,15 +1,59 @@
 # Sistemas_digitais_Problema3
+<section id="descricao">
+<h2>Descrição do Projeto</h2>
+
+<p>O projeto desenvolvido nesta terceira etapa consiste em um <strong>sistema de zoom dinâmico</strong> com interação via <strong>mouse USB</strong>, executando sobre a plataforma <strong>DE1-SoC</strong>. O sistema combina um <strong>processador ARM (HPS)</strong> executando código em C e um <strong>coprocessador gráfico implementado em Verilog na FPGA</strong>, comunicando-se por meio da ponte AXI Lightweight.</p>
+
+<p>O objetivo é permitir que o usuário selecione regiões da imagem exibida na saída VGA, realize cortes e aplique operações de <strong>zoom in</strong> e <strong>zoom out</strong> em tempo real, sem interferir no desempenho de exibição. Todo o processamento é controlado por comandos ISA enviados pelo HPS e interpretados pela controladora de hardware, que ativa os módulos específicos de ampliação e redução da imagem.</p>
+
+<p>A principal inovação deste estágio está na introdução da <strong>interação direta por mouse</strong> e na <strong>geração do cursor e área de seleção via overlay em hardware</strong>, o que elimina a necessidade de reescrever a imagem na RAM a cada atualização. Essa abordagem garante resposta instantânea e visualização limpa das operações, integrando o pipeline de vídeo da FPGA com a interface do usuário no HPS.</p>
+</section>
+
 <nav>
   <h2>Sumário</h2>
   <ul>
+    <li><a href="#descricao">Descrição do projeto</a></li>
+    <li><a href="#fluxo">Fluxo Geral de Execução</a></li> 
     <li><a href="#funcionamento">Funcionamento e Integração do Mouse</a></li>
     <li><a href="#captura">Mouse USB e Captura de Dados (linux/input.h)</a></li>
     <li><a href="#exibicao">Exibição do Cursor pelo Verilog (Overlay de Hardware)</a></li>
     <li><a href="#quadro">Quadro de Seleção e Comando de Zoom</a></li>
     <li><a href="#pios">PIOs Utilizados no Controle do Mouse e Seleção</a></li>
     <li><a href="#main">Funções do C</a></li>
+    <li><a href="#resultados">Resultados</a></li>
   </ul>
 </nav>
+
+<section id="fluxo">
+<h2>Fluxo Geral de Execução</h2>
+
+<p>O sistema segue um fluxo de execução modular, dividindo claramente as responsabilidades entre software e hardware:</p>
+
+<ol>
+  <li><strong>Inicialização do Sistema</strong>  
+    O programa em C inicializa as bases de memória (definidas em <code>hps_0.h</code>), carrega a imagem .MIF na memória do HPS e a transfere para o framebuffer da FPGA.</li>
+
+  <li><strong>Mapeamento dos PIOs</strong>  
+    As funções de mapeamento estabelecem acesso direto aos registradores da FPGA: controle do cursor (<code>CURSOR_X_PIO</code>, <code>CURSOR_Y_PIO</code>), ativação da seleção (<code>SELECTION_ENABLE_PIO</code>) e coordenadas da janela (<code>SEL_X1_PIO</code> a <code>SEL_Y2_PIO</code>).</li>
+
+  <li><strong>Detecção e Leitura do Mouse</strong>  
+    O dispositivo é identificado automaticamente dentro de <code>/dev/input/eventX</code>. Uma <strong>thread dedicada</strong> (<code>threadLeituraMouseUSB()</code>) lê continuamente os eventos <code>EV_REL</code> (movimento), <code>EV_KEY</code> (cliques) e <code>EV_WHEEL</code> (scroll), interpretando-os como comandos de movimento, corte e zoom.</li>
+
+  <li><strong>Atualização do Overlay em Hardware</strong>  
+    O módulo <code>vga_cursor_overlay.v</code> recebe as coordenadas do cursor e da seleção e as desenha diretamente sobre o vídeo VGA, sem alterar a imagem base. A comunicação ocorre em tempo real via PIOs, permitindo resposta imediata ao movimento do mouse.</li>
+
+  <li><strong>Execução dos Algoritmos de Zoom</strong>  
+    As operações de ampliação e redução são controladas por funções de alto nível (<code>aplicarZoomIn()</code> e <code>aplicarZoomOut()</code>), que enviam códigos ISA à controladora para ativar os módulos de <code>replicação</code>, <code>vizinho mais próximo</code>, <code>decimação</code> ou <code>média</code>. O resultado é exibido diretamente pela FPGA na tela VGA.</li>
+
+  <li><strong>Corte e Atualização da Imagem</strong>  
+    A função <code>aplicarCorte()</code> utiliza as coordenadas enviadas pelo mouse para copiar apenas a área selecionada para o centro da imagem. As demais regiões são preenchidas com <strong>preto (0x00)</strong>, e o buffer resultante é gravado novamente na RAM da FPGA, definindo a nova imagem de referência para operações posteriores.</li>
+
+  <li><strong>Loop Contínuo e Multithreading</strong>  
+    O programa roda em duas threads principais: uma para <strong>entrada de eventos</strong> e outra para <strong>atualização visual</strong>. Esse paralelismo garante que o cursor e a seleção sejam atualizados mesmo durante a execução de comandos de zoom, mantendo o sistema responsivo.</li>
+</ol>
+
+<p>Esse fluxo modular garante a integração completa entre o ambiente Linux do HPS e o hardware programável da FPGA, cumprindo todos os requisitos da etapa 3.</p>
+</section>
 
 <section id="funcionamento">
 <h2>Funcionamento e Integração do Mouse</h2>
@@ -69,3 +113,24 @@
 <p>O antigo menu CLI foi completamente removido. A aplicação não opera mais por meio de entradas numéricas e loops de seleção. Em vez disso, o programa realiza apenas uma configuração inicial, na qual o usuário define os algoritmos desejados para zoom-in e zoom-out. Após esse momento, <strong>toda a interação ocorre por movimento e cliques do mouse</strong>. Esse novo comportamento é possibilitado pela inclusão de funções como <code>configurarAlgoritmos()</code> e <code>aplicarAlgoritmo()</code>, que encapsulam escolhas, regras e acionamentos dos modos de operação sem necessidade de navegação por menu.</p> 
 
 <h3>2. Novas Funções de Mapeamento e Atualização de PIOs</h3> <p>Com a chegada dos novos PIOs — responsáveis pelo cursor, janela de seleção e sinais auxiliares — tornou-se necessário reorganizar o fluxo de escrita no hardware. Enquanto a versão antiga utilizava apenas o <code>CONTROL_PIO</code>, a versão atual controla <strong>oito registradores distintos</strong>, como <code>cursor_x_ptr</code>, <code>cursor_y_ptr</code>, <code>sel_x1_ptr</code>, <code>sel_x2_ptr</code>, entre outros.</p> <p>Para manter consistência e evitar condições de corrida em ambiente multithread, o código introduziu funções dedicadas, como:</p> <ul> <li><code>mapearRegistradoresCursor()</code> e <code>mapearRegistradoresSelecao()</code>, que isolam toda a lógica de mapeamento;</li> <li><code>atualizarCursorHardware()</code>, que sincroniza o envio da posição do cursor via PIO;</li> <li><code>atualizarCoordenadaImagem()</code>, responsável por projetar o movimento do mouse no espaço 160×120 da imagem.</li> </ul> <p>Essas funções trabalham em conjunto com um bloqueio <code>pthread_mutex</code> introduzido especificamente para garantir que leituras e escritas nos PIOs não ocorram simultaneamente entre diferentes threads.</p> <h3>3. Introdução de Multithreading para Responsividade</h3> <p>Uma das transformações mais importantes foi a adoção de threads. A versão antiga funcionava de maneira estritamente sequencial, o que tornava a interface lenta e fazia o programa travar enquanto operações demoradas ocorriam. Agora, a aplicação possui duas threads principais:</p> <ul> <li><code>threadLeituraMouseUSB()</code>: responsável por capturar eventos brutos do mouse (movimento, cliques e scroll) através de <code>linux/input.h</code>;</li> <li><code>threadAtualizacaoDisplay()</code>: encarregada de atualizar continuamente os PIOs, o overlay do cursor e o estado da seleção.</li> </ul> <p>Essa separação garante que o movimento do cursor nunca seja interrompido por cálculos de imagem ou operações de zoom, tornando o sistema fluido e altamente responsivo.</p> <h3>4. Nova Lógica de Zoom com Scroll do Mouse</h3> <p>O zoom, anteriormente controlado por opções no menu, agora é totalmente baseado no scroll do mouse. As funções <code>aplicarZoomIn()</code>, <code>aplicarZoomOut()</code> e <code>resetParaOriginal()</code> encapsulam regras internas, limites permitidos e comunicação com o hardware. A nova abordagem também introduziu buffers auxiliares em software (<code>imagem_original</code> e <code>imagem_backup</code>), permitindo restaurar o estado inicial da imagem sem depender do hardware — algo inexistente na implementação antiga.</p> <h3>5. Implementação Simples e Direta da Função de Corte</h3> <p>A funcionalidade de corte passou a operar de forma intuitiva para o usuário: basta clicar e arrastar para selecionar uma região. As coordenadas são enviadas continuamente aos PIOs, e, quando o corte é acionado, a função <code>aplicarCorte()</code> copia a região selecionada para o centro da imagem, preenche as áreas externas com preto e atualiza o buffer principal. O processo é simples, direto e totalmente integrado ao overlay da FPGA.</p> <h3>6. Estrutura Geral Mais Segura, Modular e Manutenível</h3> <p>Além de todas as novidades, a organização do código foi aprimorada. As funções agora possuem papéis bem definidos, evitam duplicação de lógica e seguem um fluxo claro: capturar → interpretar → atualizar PIOs → exibir. O uso de mutex, threads e funções especializadas tornou o sistema robusto e eliminou problemas de congelamento e inconsistência presentes na versão anterior.</p> <p>Com essas mudanças, a <code>main.c</code> deixa de ser apenas um controlador de fluxo textual e passa a ser o núcleo interativo de um sistema gráfico responsivo, concluindo integralmente os requisitos do projeto.</p> </section>
+<section id="resultados">
+<h2>Análise de Resultados</h2>
+
+<p>Os testes realizados confirmaram que a integração HPS–FPGA se manteve estável e eficiente mesmo com a execução paralela de threads e o uso intensivo de eventos do mouse. O overlay de hardware eliminou o problema de cintilação observado nas primeiras versões, e a atualização do cursor passou a ser instantânea, sem atrasos perceptíveis.</p>
+
+<p>O corte centralizado com pintura preta mostrou-se funcional e robusto, permitindo redefinir dinamicamente a imagem de referência sem interferir nos módulos de zoom. A troca entre algoritmos — replicação, vizinho mais próximo, decimação e média — é feita sem reinicialização do sistema, validando a eficiência da comunicação via PIO.</p>
+
+<p>Durante os testes, o sistema atingiu taxas de atualização compatíveis com o clock de 25 MHz do VGA, mantendo a estabilidade visual mesmo em múltiplas operações consecutivas de zoom in/out. Não foram observados travamentos ou inconsistências entre o HPS e a FPGA, o que demonstra a maturidade da integração e da nova estrutura de software.</p>
+</section>
+
+<section id="referencias">
+<h2>Referências</h2>
+
+<ul>
+  <li>INTEL FPGA. <em>DE1-SoC User Manual</em>. Terasic Technologies, 2023.</li>
+  <li>INTEL FPGA. <em>AXI Bridge for HPS–FPGA Interface</em>. Documentation, 2022.</li>
+  <li>Linux Kernel Documentation. <em>Input Subsystem and Event Devices</em> — <code>linux/input.h</code>.</li>
+  <li>Tanenbaum, A. S. <em>Modern Operating Systems</em>. Pearson Education.</li>
+  <li>Material didático da disciplina MI – Sistemas Digitais (UEFS, 2025.2).</li>
+</ul>
+</section>
